@@ -1,0 +1,7 @@
+PASS SIGINT: live protobuf, 23 MCAP snapshots, final count 38, finalized replay
+PASS SIGTERM: live protobuf, 25 MCAP snapshots, final count 41, finalized replay
+PASS invalid command-line arguments
+PASS invalid recordings path and unavailable GPIO cleanup
+mini-drivebrain [--simulate] [--hz 20] [--chip /dev/gpiochip0] [--line 12]
+  [--falling] [--pulses-per-liter N] [--recordings DIR] [--duration SECONDS]
+Default mode reads real GPIO. Calibration is disabled until supplied.

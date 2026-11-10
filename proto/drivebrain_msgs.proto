@@ -1,5 +1,13 @@
 syntax = "proto3";
-
 package drivebrain_msgs;
-
-// Add your messages here
+message FlowmeterTelemetry {
+  uint64 timestamp_unix_ns = 1;
+  uint64 pulse_count = 2;
+  uint64 last_pulse_monotonic_ns = 3;
+  double pulse_frequency_hz = 4;
+  bool calibrated = 5;
+  double volume_liters = 6;
+  double flow_liters_per_minute = 7;
+  uint64 missed_pulses = 8;
+  bool simulated = 9;
+}

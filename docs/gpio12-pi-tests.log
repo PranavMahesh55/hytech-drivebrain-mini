@@ -1,0 +1,16 @@
+Internal ctest changing into directory: /app/build
+Test project /app/build
+    Start 1: flowmeter-tests
+1/1 Test #1: flowmeter-tests ..................   Passed    1.22 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.23 sec
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+PASS SIGINT: live protobuf, 25 MCAP snapshots, final count 40, finalized replay
+PASS SIGTERM: live protobuf, 25 MCAP snapshots, final count 40, finalized replay
+PASS invalid command-line arguments
+PASS invalid recordings path and unavailable GPIO cleanup
+mini-drivebrain [--simulate] [--hz 20] [--chip /dev/gpiochip0] [--line 12]
+  [--falling] [--pulses-per-liter N] [--recordings DIR] [--duration SECONDS]
+Default mode reads real GPIO. Calibration is disabled until supplied.

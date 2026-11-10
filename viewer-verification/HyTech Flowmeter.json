@@ -1,0 +1,48 @@
+{
+  "configById": {
+    "Plot!95y2ly": {
+      "foxglovePanelTitle": "Flowmeter pulse count",
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/flowmeter.pulse_count",
+          "enabled": true,
+          "color": "#4e98e2",
+          "id": "408c98e4-1b2f-4c81-9fb5-44cc8c29ae88"
+        }
+      ]
+    },
+    "RawMessages!os6rgs": {
+      "defaultExpanded": false,
+      "topicPath": "/flowmeter"
+    },
+    "Plot!3bju2w4": {
+      "foxglovePanelTitle": "Flowmeter pulse frequency (Hz)",
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/flowmeter.pulse_frequency_hz",
+          "enabled": true,
+          "color": "#4e98e2",
+          "id": "9569b7f5-df6d-49c5-8d22-fb932eca214f"
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "Plot!95y2ly",
+    "second": {
+      "first": "Plot!3bju2w4",
+      "second": "RawMessages!os6rgs",
+      "direction": "column",
+      "splitPercentage": 30
+    },
+    "direction": "row",
+    "splitPercentage": 70
+  }
+}

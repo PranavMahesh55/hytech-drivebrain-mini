@@ -1,0 +1,14 @@
+Internal ctest changing into directory: /app/build
+Test project /app/build
+    Start 1: flowmeter-tests
+1/1 Test #1: flowmeter-tests ..................   Passed    1.23 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.23 sec
+PASS SIGINT: live protobuf, 25 MCAP snapshots, final count 35, finalized replay
+PASS SIGTERM: live protobuf, 25 MCAP snapshots, final count 36, finalized replay
+PASS invalid command-line arguments
+PASS invalid recordings path and unavailable GPIO cleanup
+
+There is no dynamic section in this file.

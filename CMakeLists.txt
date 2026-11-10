@@ -1,30 +1,35 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
+project(mini-drivebrain LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
-project(mini-drivebrain)
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(DRIVEBRAIN_CORE_ONLY "Build driver and tests without telemetry dependencies" OFF)
+option(DRIVEBRAIN_STATIC "Statically link the Pi executable" OFF)
+find_package(Threads REQUIRED)
+add_subdirectory(drivebrain_comms)
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(flowmeter-tests tests/flowmeter_tests.cpp)
+  target_link_libraries(flowmeter-tests PRIVATE drivebrain_comms)
+  add_test(NAME flowmeter-tests COMMAND flowmeter-tests)
+  set_tests_properties(flowmeter-tests PROPERTIES TIMEOUT 20)
+endif()
+if(DRIVEBRAIN_CORE_ONLY)
+  return()
+endif()
 find_package(Protobuf REQUIRED CONFIG)
 find_package(foxglove-websocket REQUIRED)
 find_package(mcap REQUIRED)
 find_package(spdlog REQUIRED)
-
-# Add your source files here
-add_executable(mini-drivebrain
-    drivebrain_app/main.cpp
-    drivebrain_core/src/FoxgloveServer.cpp
-    drivebrain_core/src/MCAPLogger.cpp
-    proto/drivebrain_msgs.proto
-)
-
-# proto/drivebrain_msgs.proto -> #include <drivebrain_msgs.pb.h>
-protobuf_generate(TARGET mini-drivebrain IMPORT_DIRS proto)
-
-target_include_directories(mini-drivebrain PRIVATE drivebrain_core/include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(mini-drivebrain PRIVATE
-    foxglove-websocket::foxglove-websocket
-    mcap::mcap
-    spdlog::spdlog
-    protobuf::libprotobuf
-)
-
-# static so the binary runs on the pi without installing anything
-target_link_options(mini-drivebrain PRIVATE -static)
+add_library(drivebrain_msgs proto/drivebrain_msgs.proto)
+protobuf_generate(TARGET drivebrain_msgs IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto PROTOC_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR} APPEND_PATH)
+target_include_directories(drivebrain_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(drivebrain_msgs PUBLIC protobuf::libprotobuf)
+add_executable(mini-drivebrain drivebrain_app/main.cpp drivebrain_core/src/FoxgloveServer.cpp drivebrain_core/src/MCAPLogger.cpp)
+target_include_directories(mini-drivebrain PRIVATE drivebrain_core/include)
+target_link_libraries(mini-drivebrain PRIVATE drivebrain_comms drivebrain_msgs foxglove-websocket::foxglove-websocket mcap::mcap spdlog::spdlog)
+if(DRIVEBRAIN_STATIC)
+  if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "Static deployment build requires Linux")
+  endif()
+  target_link_options(mini-drivebrain PRIVATE -static)
+endif()

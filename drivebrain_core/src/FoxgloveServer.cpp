@@ -94,7 +94,6 @@ core::FoxgloveServer::FoxgloveServer() {
     auto descriptors = get_pb_descriptors(proto_names);
     std::vector<foxglove::ChannelWithoutId> channels;
 
-    int running_index = 1;
     for (const auto &file_descriptor : descriptors) {
 
         for (int i = 0; i < file_descriptor->message_type_count(); ++i) {
@@ -104,13 +103,12 @@ core::FoxgloveServer::FoxgloveServer() {
             server_channel.encoding = "protobuf";
             server_channel.schemaName = message_descriptor->full_name();
             server_channel.schema = foxglove::base64Encode(SerializeFdSet(message_descriptor));
-            _name_to_id_map[server_channel.topic] = running_index;
             channels.push_back(server_channel);
-            running_index++;
         }
     }
 
     auto res_ids = _server->addChannels(channels);
+    for (size_t i = 0; i < channels.size(); ++i) _name_to_id_map[channels[i].topic] = res_ids.at(i);
 
     _server->setHandlers(std::move(hdlrs));
     _server->start("0.0.0.0", 5555);

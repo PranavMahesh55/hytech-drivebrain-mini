@@ -38,7 +38,13 @@
     after = [ "network.target" ];
 
     serviceConfig = {
-      ExecStart = "/home/nixos/mini-drivebrain";
+      WorkingDirectory = "/home/nixos";
+      Environment = [ "GPIO_CHIP=/dev/gpiochip0" "GPIO_LINE=12" ];
+      EnvironmentFile = "-/etc/mini-drivebrain.env";
+      ExecStart = "/home/nixos/mini-drivebrain --chip \${GPIO_CHIP} --line \${GPIO_LINE} --recordings /home/nixos/recordings";
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 15;
+      RestartSec = 2;
       Restart = "on-failure";
     };
   };

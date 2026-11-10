@@ -1,3 +1,9 @@
 build/
 CMakeUserPresets.json
 solutions/
+
+build-*/
+recordings/
+__pycache__/
+
+.venv/

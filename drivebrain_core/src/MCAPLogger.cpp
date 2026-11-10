@@ -4,35 +4,20 @@
 
 #include <MCAPLogger.hpp>
 
-#define RECORDINGS_DIR "/home/nixos/recordings"
+
 
 /****************************************************************
  * HELPER METHODS
  ****************************************************************/
-static std::string get_logfile_name() {
-  std::string dir_path = RECORDINGS_DIR;
-  int max_file_number = 0;
-
-  try {
-    for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
-      if (entry.is_regular_file()) {
-        std::string filename = entry.path().filename().string();
-        try {
-          int current_number = std::stoi(filename);
-          if (current_number > max_file_number) {
-              max_file_number = current_number;
-          }
-        } catch (const std::invalid_argument& e) {
-          spdlog::error("Skipping non-numeric file: {}", filename);
-        }
-      }
-    }
-  }  catch (const std::filesystem::filesystem_error& e) {
-    spdlog::error("Filesystem error");
-    return "uhoh.mcap";
-  }
-
-  return std::to_string(max_file_number + 1) + ".mcap";
+static std::string get_logfile_name(const std::string& directory) {
+    std::filesystem::create_directories(directory);
+    // Single running instance per recordings directory. Nanoseconds avoid collisions
+    // across rapid restarts without parsing unrelated user filenames.
+    auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    auto path = std::filesystem::path(directory) / (std::to_string(now) + ".mcap");
+    if (std::filesystem::exists(path)) throw std::runtime_error("Recording already exists");
+    return path.string();
 }
 
 static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(const std::vector<std::string> &filenames) {
@@ -77,9 +62,10 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-void core::MCAPLogger::create(const mcap::McapWriterOptions &options) {
+void core::MCAPLogger::create(const mcap::McapWriterOptions &options, const std::string &recordings_dir) {
+    _write_failed = false;
     MCAPLogger* expected = nullptr;
-    MCAPLogger* local = new MCAPLogger(options);
+    MCAPLogger* local = new MCAPLogger(options, recordings_dir);
     if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
         // Already initialized, delete local instance
         delete local;
@@ -100,9 +86,9 @@ void core::MCAPLogger::destroy() {
 }
 
 int core::MCAPLogger::open_new_mcap() {
-    std::string mcap_name = get_logfile_name();
+    std::string mcap_name = get_logfile_name(_recordings_dir);
     spdlog::info("Attempting to open new MCAP file: {}", mcap_name);
-    _log_name = std::string(RECORDINGS_DIR) + "/" + get_logfile_name();
+    _log_name = mcap_name;
 
     const auto res = _writer.open(_log_name, _options);
     if (!res.ok()) {
@@ -110,6 +96,7 @@ int core::MCAPLogger::open_new_mcap() {
         return -1;
     }
 
+    _opened = true;
     std::vector<std::string> proto_names = {"drivebrain_msgs.proto"};
 
     auto descriptors = get_pb_descriptors(proto_names);
@@ -136,7 +123,13 @@ void core::MCAPLogger::init_logging() {
         std::lock_guard lock(_input_buffer_mutex);
         _logging = true;
     }
-    _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
+    _msg_log_thread = std::thread([this]() {
+        try { _handle_log_to_file(); }
+        catch (const std::exception& error) {
+            _write_failed = true;
+            spdlog::error("MCAP worker failed: {}", error.what());
+        } catch (...) { _write_failed = true; }
+    });
     spdlog::info("Msg log thread spawned");
 }
 
@@ -149,7 +142,7 @@ int core::MCAPLogger::log_msg(core::MsgType message, const std::string &topic) {
     new_message.message_name = topic.empty() ? new_message.type_name : topic;
     {
         std::unique_lock lock(_input_buffer_mutex);
-        if (!_logging) return -1; // Logging is not active, return an error code
+        if (!_logging || _write_failed) return -1; // Logging is not active, return an error code
         _input_buffer.push_back(std::move(new_message));
         _input_buffer_cv.notify_one();
    }
@@ -160,11 +153,11 @@ int core::MCAPLogger::log_msg(core::MsgType message, const std::string &topic) {
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const mcap::McapWriterOptions &options) : _options(options) {
+core::MCAPLogger::MCAPLogger(const mcap::McapWriterOptions &options, std::string recordings_dir) : _options(options), _recordings_dir(std::move(recordings_dir)) {
 }
 
 void core::MCAPLogger::_handle_log_to_file() {
-    static std::deque<RawMessage_s> write_buffer; // The buffer to be copied over to
+    std::deque<RawMessage_s> write_buffer; // The buffer to be copied over to
 
     while (true) {
         {
@@ -174,7 +167,7 @@ void core::MCAPLogger::_handle_log_to_file() {
                 break;
             }
 
-            write_buffer = std::move(_input_buffer);
+            write_buffer.swap(_input_buffer);
         }
 
         for (auto &msg : write_buffer) {
@@ -194,6 +187,10 @@ void core::MCAPLogger::_handle_log_to_file() {
             }
             msg_to_log.channelId = channel->second;
             auto write_res = _writer.write(msg_to_log);
+            if (!write_res.ok()) {
+                _write_failed = true;
+                spdlog::error("MCAP write failed: {}", write_res.message);
+            }
         }
         write_buffer.clear();
     }

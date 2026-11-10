@@ -1,0 +1,4 @@
+PASS SIGINT: live protobuf, 24 MCAP snapshots, final count 33, finalized replay
+PASS SIGTERM: live protobuf, 24 MCAP snapshots, final count 32, finalized replay
+PASS invalid command-line arguments
+PASS invalid recordings path and unavailable GPIO cleanup

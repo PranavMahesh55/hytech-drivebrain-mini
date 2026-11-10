@@ -1,0 +1,23 @@
+[Unit]
+Description=Mini Drivebrain flowmeter telemetry
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# Root allows GPIO access on the supplied teaching image. For a restricted user,
+# first configure the appropriate GPIO device group/udev permissions.
+User=root
+WorkingDirectory=/home/nixos
+Environment=GPIO_CHIP=/dev/gpiochip0
+Environment=GPIO_LINE=12
+EnvironmentFile=-/etc/mini-drivebrain.env
+ExecStart=/home/nixos/mini-drivebrain --chip ${GPIO_CHIP} --line ${GPIO_LINE} --recordings /home/nixos/recordings
+KillSignal=SIGTERM
+TimeoutStopSec=15
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,9 @@
 # mini-drivebrain
 
+Configured default input: `/dev/gpiochip0`, GPIO **line offset 12** (not physical header pin 12). The executable and service defaults use this input; runtime options or an existing `/etc/mini-drivebrain.env` can override it.
+
+This working implementation includes real GPIO input, simulation, telemetry, and service configuration. Start with [the beginner guide](docs/BEGINNER_GUIDE.md), [the implementation guide](docs/IMPLEMENTATION_GUIDE.md), and [validation results](docs/VALIDATION.md). The original assignment follows below.
+
 By now you should be familiar with our main compute module, [Drivebrain](https://github.com/hytech-racing/drivebrain). This project aims to match parts of that environment that matter, so you can get familiar with what you'll be working with for the rest of the year.
 
 ## Project Description

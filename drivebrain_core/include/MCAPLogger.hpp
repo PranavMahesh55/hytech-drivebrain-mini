@@ -7,6 +7,10 @@
 #include <atomic>
 #include <cassert>
 #include <queue>
+#include <filesystem>
+#include <unordered_map>
+#include <unordered_set>
+#include <memory>
 #include <chrono>
 #include <mcap/writer.hpp>
 #include <google/protobuf/descriptor.pb.h>
@@ -31,7 +35,8 @@ namespace core {
              *
              * @param options options to create the mcap with
              */
-            static void create(const mcap::McapWriterOptions &options);
+            static void create(const mcap::McapWriterOptions &options, const std::string &recordings_dir = "/home/nixos/recordings");
+            static bool write_failed() { return _write_failed.load(); }
 
             /**
              * Fetches MCAPLogger singleton instance
@@ -60,6 +65,7 @@ namespace core {
 
               _input_buffer_cv.notify_all();
               if(_msg_log_thread.joinable()) _msg_log_thread.join();
+              if (_opened) _writer.close();
             }
 
             /**
@@ -86,7 +92,7 @@ namespace core {
         private:
 
             /* Private constructor to be called by init method */
-            MCAPLogger(const mcap::McapWriterOptions &options);
+            MCAPLogger(const mcap::McapWriterOptions &options, std::string recordings_dir);
 
             /**
              * Spawned by thread, loops until end of program life or error occurs.
@@ -116,6 +122,9 @@ namespace core {
             std::unordered_map<std::string, uint16_t> _type_to_schema_id_map;
             std::string _log_name = "NONE";
             bool _logging = false;
+            bool _opened = false;
+            std::string _recordings_dir;
+            inline static std::atomic<bool> _write_failed{false};
     };
 
 }
